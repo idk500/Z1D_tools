@@ -3,8 +3,12 @@ name: Build Windows EXE
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'network/connectivity_test.py'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'network/connectivity_test.py'
   workflow_dispatch:
 
 jobs:
@@ -59,15 +63,3 @@ jobs:
         with:
           name: connectivity_test-windows
           path: network/dist/*.exe
-
-      - name: Create GitHub Release and upload exe (using gh)
-        if: success()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          $TAG = "v${{ github.run_number }}-${{ github.run_id }}"
-          $TITLE = "connectivity_test-${{ github.run_number }}"
-          $NOTES = "自动构建的 Windows 可执行文件。"
-          Write-Host "Creating release $TAG and uploading asset..."
-          # Create release and upload asset in one command (PowerShell)
-          gh release create $TAG network/dist/connectivity_test.exe --title $TITLE --notes $NOTES
