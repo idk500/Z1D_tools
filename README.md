@@ -27,7 +27,7 @@
 
 注意事项
 - UPX 已在 CI 中通过 choco 安装并用于 PyInstaller 的压缩（提高可执行文件压缩率）。
-- `connectivity_test.spec` 引用了 `1D_logo.png` / `1D_logo.ico` 等资源；请确保这些资源在构建时可访问（位于 `network/` 或更新 spec 中的相对路径），否则生成的 exe 可能缺少图标或资源。
+- `connectivity_test.spec` 目前已改为使用 `1D_logo.ico`（已移除对 `1D_logo.png` 的引用）。请确保 `network/1D_logo.ico` 在仓库中存在且路径正确，否则生成的 exe 可能缺少图标或资源。
 - Release tag 名称采用 CI 运行号（示例：`v123-456789`）。如果你需要基于语义化版本的 tag（例如 `v1.2.3`）发布，请在 push 时用带 tag 的提交或告诉我要改为仅在带 tag 的 push 时发布。
 
 手动操作（在本地准备 PR）
