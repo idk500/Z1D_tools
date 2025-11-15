@@ -6,7 +6,7 @@ a = Analysis(
     ['connectivity_test.py'],
     pathex=[],
     binaries=[],
-    datas=[('1D_logo.png', '.')],
+    datas=[('1D_logo.ico', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
