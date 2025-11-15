@@ -1,0 +1,75 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'network/connectivity_test.py'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'network/connectivity_test.py'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Verify required files exist
+        run: |
+          echo "Checking network/connectivity_test.spec..."
+          if (-Not (Test-Path -Path "network\connectivity_test.spec")) {
+            Write-Error "ERROR: network/connectivity_test.spec not found"
+            exit 1
+          }
+          echo "Spec found."
+
+      - name: Install UPX (for PyInstaller compression)
+        run: |
+          choco install upx -y
+          # verify
+          upx --version
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r network/requirements.txt
+          pip install pyinstaller
+
+      - name: Build .exe with PyInstaller (use provided spec)
+        working-directory: network
+        run: |
+          # Use the provided spec to preserve datas/icon settings
+          # Capture stdout/stderr to a log file for easier debugging
+          pyinstaller --clean --noconfirm connectivity_test.spec 2>&1 | Tee-Object -FilePath pyinstaller.log
+
+      - name: Verify exe was generated
+        run: |
+          if (-Not (Test-Path -Path "network\dist\connectivity_test.exe")) {
+            Write-Error "ERROR: network\dist\connectivity_test.exe not found after build"
+            exit 1
+          }
+          echo "Executable generated: network\\dist\\connectivity_test.exe"
+
+      - name: Upload exe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: connectivity_test-windows
+          path: network/dist/*.exe
+
+      - name: Upload build logs and dist (for debugging)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: connectivity_test-debug
+          path: |
+            network/pyinstaller.log
+            network/dist/**
