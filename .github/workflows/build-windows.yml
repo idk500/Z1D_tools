@@ -15,9 +15,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+
+      - name: Verify required files exist
+        run: |
+          echo "Checking network/connectivity_test.spec..."
+          if (-Not (Test-Path -Path "network\connectivity_test.spec")) {
+            Write-Error "ERROR: network/connectivity_test.spec not found"
+            exit 1
+          }
+          echo "Spec found."
 
       - name: Install UPX (for PyInstaller compression)
         run: |
@@ -37,31 +46,28 @@ jobs:
           # Use the provided spec to preserve datas/icon settings
           pyinstaller --clean --noconfirm connectivity_test.spec
 
+      - name: Verify exe was generated
+        run: |
+          if (-Not (Test-Path -Path "network\dist\connectivity_test.exe")) {
+            Write-Error "ERROR: network\dist\connectivity_test.exe not found after build"
+            exit 1
+          }
+          echo "Executable generated: network\\dist\\connectivity_test.exe"
+
       - name: Upload exe artifact
         uses: actions/upload-artifact@v4
         with:
           name: connectivity_test-windows
           path: network/dist/*.exe
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Create GitHub Release and upload exe (using gh)
+        if: success()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ github.run_number }}-${{ github.run_id }}
-          release_name: connectivity_test-v${{ github.run_number }}
-          body: |
-            自动构建的 Windows 可执行文件。
-          draft: false
-          prerelease: false
-
-      - name: Upload exe to Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: network/dist/connectivity_test.exe
-          asset_name: connectivity_test.exe
-          asset_content_type: application/octet-stream
+        run: |
+          TAG="v${{ github.run_number }}-${{ github.run_id }}"
+          TITLE="connectivity_test-${{ github.run_number }}"
+          NOTES="自动构建的 Windows 可执行文件。"
+          echo "Creating release $TAG and uploading asset..."
+          # Create release and upload asset in one command
+          gh release create "$TAG" network/dist/connectivity_test.exe --title "$TITLE" --notes "$NOTES"
