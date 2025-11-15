@@ -1,0 +1,67 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install UPX (for PyInstaller compression)
+        run: |
+          choco install upx -y
+          # verify
+          upx --version
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r network/requirements.txt
+          pip install pyinstaller
+
+      - name: Build .exe with PyInstaller (use provided spec)
+        working-directory: network
+        run: |
+          # Use the provided spec to preserve datas/icon settings
+          pyinstaller --clean --noconfirm connectivity_test.spec
+
+      - name: Upload exe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: connectivity_test-windows
+          path: network/dist/*.exe
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}-${{ github.run_id }}
+          release_name: connectivity_test-v${{ github.run_number }}
+          body: |
+            自动构建的 Windows 可执行文件。
+          draft: false
+          prerelease: false
+
+      - name: Upload exe to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: network/dist/connectivity_test.exe
+          asset_name: connectivity_test.exe
+          asset_content_type: application/octet-stream
