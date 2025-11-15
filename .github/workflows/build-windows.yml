@@ -48,7 +48,8 @@ jobs:
         working-directory: network
         run: |
           # Use the provided spec to preserve datas/icon settings
-          pyinstaller --clean --noconfirm connectivity_test.spec
+          # Capture stdout/stderr to a log file for easier debugging
+          pyinstaller --clean --noconfirm connectivity_test.spec 2>&1 | Tee-Object -FilePath pyinstaller.log
 
       - name: Verify exe was generated
         run: |
@@ -63,3 +64,12 @@ jobs:
         with:
           name: connectivity_test-windows
           path: network/dist/*.exe
+
+      - name: Upload build logs and dist (for debugging)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: connectivity_test-debug
+          path: |
+            network/pyinstaller.log
+            network/dist/**
